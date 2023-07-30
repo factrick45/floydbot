@@ -59,6 +59,33 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 
+	if m.Content == "!ghumor" {
+		s.ChannelTyping(m.ChannelID)
+
+		str, video, err := scrapers.DesuScrape("g", "humor")
+		if err != nil {
+			log.Println("error scraping Desuarchive:", err)
+		}
+
+		me := discordgo.MessageEmbed{}
+
+		if !video {
+			mei := discordgo.MessageEmbedImage{URL: str}
+			me.Type = discordgo.EmbedTypeImage
+			me.Image = &mei
+		} else {
+			mev := discordgo.MessageEmbedVideo{URL: str}
+			me.Type = discordgo.EmbedTypeVideo
+			me.Video = &mev
+		}
+
+		_, err = s.ChannelMessageSendEmbedReply(
+			m.ChannelID, &me, (*m).Reference())
+		if err != nil {
+			log.Println("error sending embed reply:", err)
+		}
+	}
+
 	if m.Content == "!ping" {
 		s.ChannelTyping(m.ChannelID)
 		_, err := s.ChannelMessageSendReply(

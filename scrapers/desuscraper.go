@@ -238,7 +238,7 @@ func desuScrapeUpdate(board string, term string) {
 		}
 	}
 
-	log.Println("Finished scraping" + board + "_" + term + "!")
+	log.Println("Finished scraping " + board + "_" + term + "!")
 
 	desuCacheSave(board, term, time.Now().Unix(), imgurls)
 }
