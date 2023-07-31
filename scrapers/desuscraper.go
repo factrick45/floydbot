@@ -16,11 +16,10 @@ import (
 
 const DESU_CACHE_LIFETIME = 2419200 // Four more weeks
 
-// TODO: replace arg spam with this
-type desuData struct {
+type DesuData struct {
 	Board string
 	Term string
-	Timestamp int64
+	Time int64
 	Urls []string
 }
 
@@ -29,11 +28,12 @@ var desustate struct {
 	Scraping bool
 }
 
-func desuCacheLoad(board string, term string) (int64, []string, error) {
-	bytes, err := os.ReadFile("cache/desu_" + board + "_" + term + ".csv")
+func desuCacheLoad(d *DesuData) error {
+	bytes, err := os.ReadFile(
+		"cache/desu_" + d.Board + "_" + d.Term + ".csv")
 	if err != nil {
 		log.Println("error reading cache file:", err)
-		return 0, nil, err
+		return err
 	}
 
 	r := csv.NewReader(strings.NewReader(string(bytes)))
@@ -42,13 +42,13 @@ func desuCacheLoad(board string, term string) (int64, []string, error) {
 	record, err := r.Read()
 	if err != nil {
 		log.Println("error parsing cache timestamp:", err)
-		return 0, nil, err
+		return err
 	}
 	// Must be int64!
 	timestamp, err := strconv.ParseInt(record[0], 10, 64)
 	if err != nil {
 		log.Println("error parsing cache timestamp:", err)
-		return 0, nil, err
+		return err
 	}
 
 	// Get URLs
@@ -60,46 +60,50 @@ func desuCacheLoad(board string, term string) (int64, []string, error) {
 		}
 		if err != nil {
 			log.Println("error parsing cache URLs:", err)
-			return 0, nil, err
+			return err
 		}
 		urls = append(urls, record[0])
 	}
 
-	return timestamp, urls, nil
+	d.Time = timestamp
+	d.Urls = urls
+	return nil
 }
 
-func desuCacheSave(board string, term string, timestamp int64, urls []string) {
+func desuCacheSave(d *DesuData) error {
 	f, err := os.OpenFile(
-		"cache/desu_" + board + "_" + term + ".csv",
+		"cache/desu_" + d.Board + "_" + d.Term + ".csv",
 		os.O_RDWR | os.O_CREATE, 0644)
 	if err != nil {
 		log.Println("error opening cache file:", err)
-		return
+		return err
 	}
 	defer f.Close()
 
 	w := csv.NewWriter(f)
 
 	// Write timestamp
-	err = w.Write([]string{strconv.FormatInt(timestamp, 10)})
+	err = w.Write([]string{strconv.FormatInt(d.Time, 10)})
 	if err != nil {
 		log.Println("error formatting cache:", err)
-		return
+		return err
 	}
 
 	// Write urls
-	for _, url := range urls {
+	for _, url := range d.Urls {
 		if err = w.Write([]string{url}); err != nil {
 			log.Println("error formatting cache:", err)
-			return
+			return err
 		}
 	}
 
 	w.Flush()
 	if err = w.Error(); err != nil {
 		log.Println("error writing to cache file:", err)
-		return
+		return err
 	}
+
+	return nil
 }
 
 func desuScrapeUpdate(board string, term string) {
@@ -237,20 +241,22 @@ func desuScrapeUpdate(board string, term string) {
 
 	log.Println("Finished scraping " + board + "_" + term + "!")
 
-	desuCacheSave(board, term, time.Now().Unix(), imgurls)
+	desuCacheSave(&DesuData{
+		Board: board, Term: term, Time: time.Now().Unix(), Urls: imgurls})
 }
 
 func DesuScrape(board string, term string) (string, bool, error) {
-	ctime, curls, err := desuCacheLoad(board, term)
+	d := DesuData{Board: board, Term: term}
+	err := desuCacheLoad(&d)
 	if err != nil {
 		log.Println("error loading cache:", err)
 	}
-	if (ctime == 0 || time.Now().Unix() - ctime > DESU_CACHE_LIFETIME) {
+	if (err != nil || time.Now().Unix() - d.Time > DESU_CACHE_LIFETIME) {
 		go desuScrapeUpdate(board, term)
 	}
 
 	if err == nil {
-		img := curls[rand.Intn(len(curls))]
+		img := d.Urls[rand.Intn(len(d.Urls))]
 		return img, strings.Contains(img, ".webm"), nil
 	}
 	// The caller can use a nice placeholder image
