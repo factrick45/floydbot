@@ -14,10 +14,7 @@ import (
 	"time"
 )
 
-const DESU_CACHE_LIFETIME = 432000 // Two more weeks
-const DESU_CRAWL_RATE = 10
-const DESU_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" +
-	"AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+const DESU_CACHE_LIFETIME = 2419200 // Four more weeks
 
 // TODO: replace arg spam with this
 type desuData struct {
@@ -133,7 +130,7 @@ func desuScrapeUpdate(board string, term string) {
 		log.Println(err)
 		return
 	}
-	req.Header.Set("User-Agent", DESU_USER_AGENT)
+	req.Header.Set("User-Agent", USER_AGENT)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
@@ -162,13 +159,13 @@ func desuScrapeUpdate(board string, term string) {
 	// Request each page
 	pagebodies := [][]byte{page0}
 	for _, url := range reg {
-		time.Sleep(DESU_CRAWL_RATE * time.Second)
+		time.Sleep(CRAWL_RATE * time.Second)
 		req, err = http.NewRequest("GET", string(url[1]), nil)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		req.Header.Set("User-Agent", DESU_USER_AGENT)
+		req.Header.Set("User-Agent", USER_AGENT)
 		resp, err = client.Do(req)
 		if err != nil {
 			log.Println(err)
@@ -206,13 +203,13 @@ func desuScrapeUpdate(board string, term string) {
 	re = regexp.MustCompile(
 		`class="thread_image_box"> <a href="(https://desu[^"]+)`)
 	for _, threadurl := range threadurls {
-		time.Sleep(DESU_CRAWL_RATE * time.Second)
+		time.Sleep(CRAWL_RATE * time.Second)
 		req, err = http.NewRequest("GET", string(threadurl), nil)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		req.Header.Set("User-Agent", DESU_USER_AGENT)
+		req.Header.Set("User-Agent", USER_AGENT)
 		resp, err = client.Do(req)
 		if err != nil {
 			log.Println(err)
