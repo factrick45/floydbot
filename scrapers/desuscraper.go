@@ -125,31 +125,12 @@ func desuScrapeUpdate(board string, term string) {
 	}()
 
 	// Finally the actual scraping
-	client := &http.Client{}
+	client := http.Client{}
 	// Get the first page
-	req, err := http.NewRequest(
-		"GET", "https://desuarchive.org/" + board + "/search/subject/" + term,
-		nil)
+	page0, err := EasyRequest(
+		&client, "https://desuarchive.org/" + board + "/search/subject/" + term)
 	if err != nil {
 		log.Println(err)
-		return
-	}
-	req.Header.Set("User-Agent", USER_AGENT)
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	if resp.StatusCode != 200 {
-		log.Println("error response:", resp.Status)
-		resp.Body.Close()
-		return
-	}
-	page0, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		log.Println(err)
-		return
 	}
 
 	// Extract the URLs of the other pages
@@ -164,24 +145,7 @@ func desuScrapeUpdate(board string, term string) {
 	pagebodies := [][]byte{page0}
 	for _, url := range reg {
 		time.Sleep(CRAWL_RATE * time.Second)
-		req, err = http.NewRequest("GET", string(url[1]), nil)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		req.Header.Set("User-Agent", USER_AGENT)
-		resp, err = client.Do(req)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		if resp.StatusCode != 200 {
-			log.Println("error response:", resp.Status)
-			resp.Body.Close()
-			return
-		}
-		page, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		page, err := EasyRequest(&client, string(url[1]))
 		if err != nil {
 			log.Println(err)
 			return
@@ -208,28 +172,12 @@ func desuScrapeUpdate(board string, term string) {
 		`class="thread_image_box"> <a href="(https://desu[^"]+)`)
 	for _, threadurl := range threadurls {
 		time.Sleep(CRAWL_RATE * time.Second)
-		req, err = http.NewRequest("GET", string(threadurl), nil)
+		thread, err := EasyRequest(&client, string(threadurl))
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		req.Header.Set("User-Agent", USER_AGENT)
-		resp, err = client.Do(req)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		if resp.StatusCode != 200 {
-			log.Println("error response:", resp.Status)
-			resp.Body.Close()
-			return
-		}
-		thread, err := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			log.Println(err)
-			return
-		}
+
 		reg = re.FindAllSubmatch(thread, -1)
 		if reg == nil {
 			log.Println("Error parsing Desuarchive: no images in thread")
