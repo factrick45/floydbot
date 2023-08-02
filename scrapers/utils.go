@@ -18,7 +18,7 @@ func EasyRequest(cl *http.Client, url string) ([]byte, error) {
 	}
 	if resp.StatusCode != 200 {
 		resp.Body.Close()
-		return nil, errors.New("response besides 200 OK")
+		return nil, errors.New("error response: " + resp.Status)
 	}
 	body, err := io.ReadAll(resp.Body)
 	resp.Body.Close()

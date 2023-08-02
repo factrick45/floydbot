@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"ihm/floydbot/scrapers"
 	"log"
@@ -31,6 +32,26 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		botstate.Unlock()
 	}()
 
+	if m.Content == "!4post" {
+		s.ChannelTyping(m.ChannelID)
+
+		post, err := scrapers.FourPostNewest("g")
+		if err != nil {
+			log.Println("error scraping 4chan:", err)
+			return
+		}
+		str := fmt.Sprintf(
+			"**%s %s [No.%d](%s)**\n%s", post.PosterName, post.DateTime,
+			post.PostNumber, post.Link, post.Message)
+		_, err = s.ChannelMessageSendReply(
+			m.ChannelID, str, (*m).Reference())
+		if err != nil {
+			log.Println("error sending reply:", err)
+		}
+
+		return
+	}
+
 	if m.Content == "!caturday" {
 		// Typing stops when message is sent
 		s.ChannelTyping(m.ChannelID)
@@ -57,6 +78,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if err != nil {
 			log.Println("error sending embed reply:", err)
 		}
+		return
 	}
 
 	if m.Content == "!ghumor" {
@@ -84,6 +106,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if err != nil {
 			log.Println("error sending embed reply:", err)
 		}
+		return
 	}
 
 	if m.Content == "!ping" {
@@ -93,6 +116,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if err != nil {
 			log.Println("error sending reply:", err)
 		}
+		return
 	}
 }
 
