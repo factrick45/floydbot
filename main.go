@@ -32,16 +32,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		botstate.Unlock()
 	}()
 
-	if m.Content == "!4post" {
+	if args, match := ComParse(m.Content, "!4post"); match {
 		s.ChannelTyping(m.ChannelID)
 
-		post, err := scrapers.FourPostNewest("g")
+		post, err := scrapers.FourPostNewest(args[1])
 		if err != nil {
 			log.Println("error scraping 4chan:", err)
 			return
 		}
 		str := fmt.Sprintf(
-			"**%s %s [No.%d](%s)**\n%s", post.PosterName, post.DateTime,
+			"**%s %s [No.%d](<%s>)**\n%s", post.PosterName, post.DateTime,
 			post.PostNumber, post.Link, post.Message)
 		_, err = s.ChannelMessageSendReply(
 			m.ChannelID, str, (*m).Reference())

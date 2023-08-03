@@ -62,12 +62,12 @@ func fourPostParse(html [][]byte, board string) (FourPost, error) {
 	re = regexp.MustCompile(FOUR_REGEX_POST_TRIM)
 	reg2 := re.ReplaceAll(html[2], []byte("$1"))
 	re = regexp.MustCompile(FOUR_REGEX_POST_QLINK)
-	reg2 = re.ReplaceAll(reg2, []byte("[>>$2](https://boards.4chan.org$1)"))
+	reg2 = re.ReplaceAll(reg2, []byte("[>>$2](<https://boards.4chan.org$1>)"))
 	re = regexp.MustCompile(FOUR_REGEX_POST_QUOTE)
-	reg2 = re.ReplaceAll(reg2, []byte("> $1"))
+	reg2 = re.ReplaceAll(reg2, []byte("\\>$1"))
 	re = regexp.MustCompile("<br>")
 	reg2 = re.ReplaceAll(reg2, []byte("\n"))
-	re = regexp.MustCompile("<[^>]+>")
+	re = regexp.MustCompile("</div>")
 	reg2 = re.ReplaceAll(reg2, []byte(""))
 	re = regexp.MustCompile("&#039;")
 	reg2 = re.ReplaceAll(reg2, []byte("'"))
@@ -79,7 +79,24 @@ func fourPostParse(html [][]byte, board string) (FourPost, error) {
 	return post, nil
 }
 
+func FourIsValidBoard(board string) bool {
+	for _, str := range FOUR_BOARDS_SFW {
+		if board == str {
+			return true
+		}
+	}
+	for _, str := range FOUR_BOARDS_NSFW {
+		if board == str {
+			return true
+		}
+	}
+	return false
+}
+
 func FourPostNewest(board string) (FourPost, error) {
+	if !FourIsValidBoard(board) {
+		return FourPost{}, errors.New("invalid board")
+	}
 	fourstate.Lock()
 	if (time.Now().Unix() - fourstate.Last < CRAWL_RATE) {
 		fourstate.Unlock()
